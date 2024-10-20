@@ -8,6 +8,11 @@ TagManager:
   - caja
   - AntiFall
   - cajaMagica
+  - DinamicCube
+  - DinamicCyllinder
+  - DeathZone
+  - cajaRaycast
+  - Ball
   layers:
   - Default
   - TransparentFX
