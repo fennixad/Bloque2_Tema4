@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class BallManager : MonoBehaviour
@@ -8,24 +9,32 @@ public class BallManager : MonoBehaviour
     public TextMeshProUGUI power;
     public Camera playerCamera;
     public GameObject ball;
+    public GameObject mirilla;
     public float rayDistance = 1000f;
     public float distanceBall = 1f;
     public float pushForce = 10f;
-    public float barras;
+    private float barras;
+    private float tiempoTranscurrido;
+    private Vector3 ballInitialPosition;
 
     void Start()
     {
-        
+        mirilla.GetComponent<Collider>().enabled = false;
+
+        barras = 0f;
+        power.text = string.Empty;
+        ballInitialPosition = ball.transform.position;
     }
 
     void Update()
     {
         RaycastInput();
+        BallPower();
     }
 
     void FixedUpdate()
     {
-        
+        FallingBallReset();
     }
 
     void BallRecognizer()
@@ -35,9 +44,13 @@ public class BallManager : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit, rayDistance))
         {
-            Debug.Log($"Hit: {hit.collider.gameObject.tag}");
+            if (hit.transform.tag == "Ball")
+            {
+                ball.GetComponent<Rigidbody>().velocity = Vector3.zero;
+                ball.GetComponent<Rigidbody>().angularVelocity = Vector3.zero;
+                PullingBall();
+            }
         }
-        DrawDebugRay(ray);
     }
 
     void RaycastInput()
@@ -45,17 +58,18 @@ public class BallManager : MonoBehaviour
         if (Input.GetKey(KeyCode.E))
         {
             BallRecognizer();
-            PullingBall();
+            
         }
 
-        if (Input.GetKeyUp(KeyCode.E))
+        if (Input.GetKeyUp(KeyCode.E) && ball.transform.parent == playerCamera.transform)
         {
-            PushingBall();
+            PushingBall();            
         }
     }
 
     void PullingBall()
     {
+
         ball.transform.SetParent(playerCamera.transform);
 
         Vector3 newPosition = playerCamera.transform.position + playerCamera.transform.forward * distanceBall;
@@ -66,29 +80,48 @@ public class BallManager : MonoBehaviour
         ball.GetComponent<Rigidbody>().useGravity = false;
         ball.GetComponent<SphereCollider>().enabled = false;
 
-        BallPower();
+        
     }
 
     void PushingBall()
     {
-        ball.GetComponent<Rigidbody>().useGravity = true;
+        ball.transform.SetParent(null);
         ball.GetComponent<SphereCollider>().enabled = true;
+        ball.GetComponent<Rigidbody>().useGravity = true;
+        
+        ball.GetComponent<Rigidbody>().AddForce(playerCamera.transform.forward * pushForce, ForceMode.Impulse);
 
-        ball.GetComponent<Rigidbody>().AddForce(Vector3.forward * pushForce, ForceMode.Impulse);
-    }
-
-    void DrawDebugRay(Ray ray)
-    {
-        Debug.DrawRay(ray.origin, ray.direction * rayDistance, Color.red, 0.1f);
+        pushForce = 10f;
+        power.text = string.Empty;
+        barras = 0;
     }
 
     void BallPower()
     {
-        barras = 1 * Time.deltaTime;
-
-        while (barras < 5)
+        if (Input.GetKey(KeyCode.E) && ball.transform.parent == playerCamera.transform) 
         {
-            power.text += "|";
+            if (barras < 5)
+            {
+                tiempoTranscurrido += Time.deltaTime;
+                if (tiempoTranscurrido >= 1f)
+                {
+                    barras += 1; 
+                    power.text += "|";  
+                    pushForce += 2f; 
+                    tiempoTranscurrido = 0f;  
+                }
+            }
+        }
+    }
+
+    void FallingBallReset()
+    {
+        if (ball.transform.position.y < -0.8f)
+        {
+            ball.GetComponent<Rigidbody>().velocity = Vector3.zero;
+            ball.GetComponent<Rigidbody>().angularVelocity = Vector3.zero;
+            ball.transform.position = ballInitialPosition; 
+            ball.GetComponent<Rigidbody>().useGravity = true;
         }
     }
 }
